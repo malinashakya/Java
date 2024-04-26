@@ -12,9 +12,9 @@ import java.util.ArrayList;
 public class MostCommonPrefix {
     public static void main(String[] args) {
         ArrayList<String> animal=new ArrayList<>();
-        animal.add("Ratccoon");
+        animal.add("Raccoon");
         animal.add("Rat");
-        animal.add("Ratbbit");
+        animal.add("Rabbit");
         String commonPrefix="";
         int arraySize=animal.size();
         int leastArrayLength=Integer.MAX_VALUE;
