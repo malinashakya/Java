@@ -15,17 +15,19 @@ public class LetterCount {
         String paragraph="Hello this is letter counting program using HashMap";
         
         int length=paragraph.length();
-        for(int i=0;i<length;i++)
-        {
-            int count=0;
-             char currentCharacter = paragraph.charAt(i);
-             for(int j=0;j<length;j++){
-             if(currentCharacter==paragraph.charAt(j))
-             {
-                 count++;
-             }
-             }
-            hashmap.put(currentCharacter, count);
+       
+        for (int i = 0; i < length; i++) {
+            char currentCharacter = paragraph.charAt(i);
+
+            if (Character.isLetter(currentCharacter)) {
+                Integer count = (Integer) hashmap.get(currentCharacter); 
+                if (count != null) {
+                    count++; 
+                } else {
+                    count = 1; 
+                }
+                hashmap.put(currentCharacter, count);
+            }
         }
         hashmap.printAllElements();
     }

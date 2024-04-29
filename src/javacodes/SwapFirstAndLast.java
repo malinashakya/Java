@@ -29,22 +29,19 @@ public class SwapFirstAndLast {
         System.out.println("Count of Words in Sentence: " + count);
         System.out.println(sentence);
     }
-
-    public static boolean contains(String string, String subString) {
-
-        int subStringLength = subString.length();
-        int stringLength = string.length();
-        int remainingLength = stringLength - subStringLength;
-        for (int i = 0; i < remainingLength; i++) {
+    //Finding needle in haystack, delta->difference
+    public static boolean contains(String haystack, String needle) {
+        int haystackLength = haystack.length();
+        int needleLength = needle.length();
+        int delta = haystackLength - needleLength;
+        for (int i = 0; i < delta; i++) {
             boolean isFound = true;
-            for (int j = 0; j < subStringLength; j++) {
-                if (string.charAt(i + j) != subString.charAt(j)) {
+            for (int j = 0; j < needleLength; j++) {
+                if (haystack.charAt(i + j) != needle.charAt(j)) {
                     isFound = false;
-                    
                 }
             }
-            if(isFound)
-            {
+            if (isFound) {
                 return true;
             }
         }

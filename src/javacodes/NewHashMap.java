@@ -65,7 +65,19 @@ public class NewHashMap {
             size++;
         }
     }
+      public  Object get(Object key) {
+        int index = hash(key);
+        KeyValue current = (KeyValue) table[index];
+        while (current != null) {
+            if (current.key.equals(key)) {
+                return current.value;
+            }
+            current = current.next;
+        }
+        return null; 
+    }
 
+//get, actual value jaba samma vatdaina tyo bela samma get inside get 
     public void printAllElements() {
         for (Object entry : table) {
             if (entry != null) {
@@ -100,5 +112,8 @@ public class NewHashMap {
         System.out.println("Check purpose");
         map.printAllElements();
         System.out.println("Is Empty? " + map.isEmpty());
+         System.out.println("Value for key 'Hello': " + map.get("Hello"));
+        System.out.println("Value for key '123': " + map.get(123));
+        System.out.println("Value for non existing key: " + map.get("No Value"));
     }
 }
