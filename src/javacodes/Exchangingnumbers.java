@@ -8,12 +8,10 @@ package javacodes;
  *
  * @author malin
  */
-import java.util.ArrayList;
-import java.util.Arrays;
+
 import java.util.Scanner;
 public class Exchangingnumbers {
     public static void main(String[] args) {
-        int valueRemoveIndex;
         int right;
         int removeValue;
         Scanner sc =new Scanner(System.in);
@@ -21,7 +19,7 @@ public class Exchangingnumbers {
         removeValue=sc.nextInt();
         int[] numbers = {1,3,2,3,4,3,5,6,6};
         right=numbers.length-1;
-        System.out.println("Right:"+right);
+//        System.out.println("Right:"+right);
         for(int i=0;i<numbers.length;i++)
         {
             if(numbers[i]==removeValue && right>0)
@@ -31,7 +29,13 @@ public class Exchangingnumbers {
                 right--;
             }
         }
-        for(int values:numbers)
+        int newNumbers[]=new int[right+1];
+        for(int i=0;i<=right;i++)
+        {
+            newNumbers[i]=numbers[i];
+        }
+//           System.out.println("Right:"+right);
+        for(int values:newNumbers)
         {
             System.out.println(values);
         }
