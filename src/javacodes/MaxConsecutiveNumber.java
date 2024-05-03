@@ -10,15 +10,15 @@ package javacodes;
  */
 public class MaxConsecutiveNumber {
     public static void main(String[] args) {
-        String numbers = "1001111000111111";
+        String numbers = "10011110001111110";
         int max = 0;
         int maxIndex = 0;
         int length = numbers.length();
         int currentConsecutiveLength = 1;
 
-        for (int i = 0; i <length - 1; i++) {
+        for (int i = 1; i <length ; i++) {
 //            System.out.println(i);
-            if (numbers.charAt(i + 1) == numbers.charAt(i)) {
+            if (numbers.charAt(i - 1) == numbers.charAt(i)) {
                 currentConsecutiveLength++;
             }
             else{
@@ -27,8 +27,8 @@ public class MaxConsecutiveNumber {
             if(currentConsecutiveLength>max)
             {
                 max=currentConsecutiveLength;
-                System.out.println("Inside:"+i);
-                maxIndex=i-max+2;
+//                System.out.println("Inside:"+i);
+                maxIndex=i-max+1;
             }
         }
         System.out.println(numbers.length());
