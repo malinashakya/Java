@@ -14,6 +14,16 @@ public class Card {
     {
         this.card=card;
     }
+    Card(String card)
+    {
+        try{
+        this.card=Integer.parseInt(card);
+        }
+        catch(NumberFormatException e)
+        {
+            this.card=10;
+        }
+    }
     public int getInt()
     {
         return this.card;

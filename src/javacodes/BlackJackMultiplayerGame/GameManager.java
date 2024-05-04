@@ -84,7 +84,7 @@ public class GameManager {
             }
 
             System.out.println("Game history has been saved to game_history.txt");
-        } catch (IOException e) {
+        } catch (Exception e) {
             System.err.println("Error writing game history to file: " + e.getMessage());
         }
     }

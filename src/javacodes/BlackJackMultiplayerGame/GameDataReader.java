@@ -37,36 +37,31 @@ public class GameDataReader {
 
     public static List<GameRecord> readGameRecords(String filename) {
         List<GameRecord> gameRecords = new ArrayList<>();
-      
 
         try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
             String line;
-            boolean startReading = false;
 
             while ((line = reader.readLine()) != null) {
                 if (line.startsWith("Name,Round,Card1,Card2,Card3,Bet,Result,Balance")) {
-                    startReading = true;
                     continue;
                 }
-                if (startReading) {
-                    String[] parts = line.split(",");
-                    if (parts.length == 8) {
-                        GameRecord record = new GameRecord();
-                        Object card1, card2, card3;
-                        record.name = parts[0];
-                       // Add the name to the set
-                        record.round = Integer.parseInt(parts[1]);
-                        card1 = reverseDisplay(parts[2]);
-                        card2 = reverseDisplay(parts[3]);
-                        card3 = reverseDisplay(parts[4]);
-                        record.card1 = (Card) card1;
-                        record.card2 = (Card) card2;
-                        record.card3 = (Card) card3;
-                        record.betPoint = Integer.parseInt(parts[5]);
-                        record.result = Integer.parseInt(parts[6]);
-                        record.balance = Integer.parseInt(parts[7]);
-                        gameRecords.add(record);
-                    }
+                String[] parts = line.split(",");
+                if (parts.length == 8) {
+                    GameRecord record = new GameRecord();
+                    String card1, card2, card3;
+                    record.name = parts[0];
+                    // Add the name to the set
+                    record.round = Integer.parseInt(parts[1]);
+                    card1 = reverseDisplay(parts[2]);
+                    card2 = reverseDisplay(parts[3]);
+                    card3 = reverseDisplay(parts[4]);
+                    record.card1 = new Card(card1);
+                    record.card2 = new Card(card2);
+                    record.card3 = new Card(card3);
+                    record.betPoint = Integer.parseInt(parts[5]);
+                    record.result = Integer.parseInt(parts[6]);
+                    record.balance = Integer.parseInt(parts[7]);
+                    gameRecords.add(record);
                 }
             }
         } catch (IOException e) {
