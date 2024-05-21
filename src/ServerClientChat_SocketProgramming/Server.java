@@ -57,3 +57,6 @@ public class Server {
         }
     }
 }
+//https://www.javatpoint.com/socket-programming
+//https://www.baeldung.com/a-guide-to-java-sockets
+//https://www.youtube.com/watch?v=gchR3DpY-8Q&list=PPSV

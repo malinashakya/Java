@@ -25,7 +25,7 @@ public class Client {
         BufferedReader bufferedReader=null;
         BufferedWriter bufferedWriter=null;
         try{
-            socket=new Socket("localhost",12345);
+            socket=new Socket("example.com",80);
             inputStreamReader=new InputStreamReader(socket.getInputStream());
             outputStreamWriter=new OutputStreamWriter(socket.getOutputStream());
             bufferedReader=new BufferedReader(inputStreamReader);
@@ -34,10 +34,16 @@ public class Client {
             while(true)
             {
                 String msgToSend=scanner.nextLine();
-                bufferedWriter.write(msgToSend);
+                bufferedWriter.write(msgToSend.replaceAll("666","\n" ));//ASCII CODE-10
                 bufferedWriter.newLine();
                 bufferedWriter.flush();
-                System.out.println("Server: "+bufferedReader.readLine());
+                String outcome=bufferedReader.readLine();
+                //We use while to read all the lines
+                while(outcome!=null)
+                {
+                System.out.println("Server: "+outcome);
+                outcome=bufferedReader.readLine();
+                }
                 if(msgToSend.equalsIgnoreCase("BYE"))
                 {
                     break;
