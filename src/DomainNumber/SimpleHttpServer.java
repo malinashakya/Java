@@ -1,24 +1,23 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 package DomainNumber;
-
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
 
 /**
  *
  * @author malin
  */
-public class IpAddress {
+import java.io.*;
+import java.net.*;
+
+ class RealtimeHttpServer {
     public static void main(String[] args) throws IOException {
-             int port = 80;
-        ServerSocket serverSocket = new ServerSocket(port, 0, InetAddress.getByName("127.0.0.1"));
+        int port = 1234;
+        ServerSocket serverSocket = new ServerSocket(port);
+        InetAddress localhost = InetAddress.getByName("127.0.0.1");
         System.err.println("Server is running on port: " + port);
-        try (FileReader reader = new FileReader("abc.html")) {
+        try {
             while (true) {
                 try (Socket clientSocket = serverSocket.accept()) {
                     System.err.println("Client connected");
@@ -33,12 +32,15 @@ public class IpAddress {
                     OutputStream clientOutput = clientSocket.getOutputStream();
                     try {
                         clientOutput.write("HTTP/1.1 200 OK\r\n".getBytes());
-                        clientOutput.write("\r\n".getBytes());
-                        int character;
-                        while ((character = reader.read()) != -1) {
-                            clientOutput.write(character);
-                        }
-                        clientOutput.write("\r\n\r\n".getBytes());
+                        clientOutput.write("Content-Type: text/html\r\n\r\n".getBytes());
+                        String html = "<html><head><title>Realtime Server</title></head><body>";
+                        html += "<h1>Realtime Updates</h1>";
+                        html += "<div id='content'></div>";
+                        html += "<script>let contentDiv = document.getElementById('content');";
+                        html += "let ws = new WebSocket('ws://localhost:8080');";
+                        html += "ws.onmessage = function(event) { contentDiv.innerHTML = event.data; };</script>";
+                        html += "</body></html>";
+                        clientOutput.write(html.getBytes());
                         clientOutput.flush();
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -54,7 +56,3 @@ public class IpAddress {
         }
     }
 }
-//Reference
-//1. https://www.youtube.com/watch?v=lCNUsi4Qfuw
-//2. how to open file in Ip address using java in browser( Chatgpt)
-        
