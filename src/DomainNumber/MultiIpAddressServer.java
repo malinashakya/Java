@@ -76,8 +76,8 @@ class ClientHandler implements Runnable {
 
             if (host != null) {
                 String folder = "";
-                if (host.startsWith("192.168.0.1")) {
-                    folder = "192.168.0.1";
+                if (host.startsWith("172.19.16.1")) {
+                    folder = "172.19.16.1";
                 } else if (host.startsWith("127.0.0.1")) {
                     folder = "127.0.0.1";
                 }
