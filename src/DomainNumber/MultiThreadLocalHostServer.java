@@ -13,9 +13,6 @@ public class MultiThreadLocalHostServer {
         System.err.println("Server is running on port: " + port);
         try {
             serverSocket = new ServerSocket(port, 0, InetAddress.getByName("0.0.0.0"));
-//            By using "0.0.0.0", you're telling Java to listen for connections at every door of your house. 
-//            This means if someone wants to connect to your server, they can knock on any door 
-//        (use any IP address)includes 127.0.0.1 as well and your server will answer.
             while (true) {
                 Socket clientSocket = serverSocket.accept();
                 System.err.println("Client connected");
