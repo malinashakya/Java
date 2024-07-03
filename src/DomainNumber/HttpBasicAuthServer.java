@@ -96,6 +96,7 @@ class HttpClientHandler implements Runnable {
                 sendUnauthorized();
             } else if (host != null) {
                 String folder = "";
+                // IP address, may get changed as per the change in the Ip address of laptop
                 if (host.startsWith("172.19.16.1")) {
                     folder = "172.19.16.1";
                 } else if (host.startsWith("127.0.0.1")) {
