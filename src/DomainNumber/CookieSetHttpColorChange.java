@@ -1,4 +1,5 @@
 package DomainNumber;
+
 import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -120,7 +121,7 @@ public class CookieSetHttpColorChange {
                     serve404();
                     return;
                 }
-
+//StringBuilder in Java is a class used to create a mutable, or in other words, a modifiable succession of characters.
                 StringBuilder contentBuilder = new StringBuilder();
                 try (BufferedReader br = new BufferedReader(new FileReader(file))) {
                     String line;
@@ -141,19 +142,19 @@ public class CookieSetHttpColorChange {
                     String modifiedContent = content.replace("{{color}}", color);
 
                     // Send response with Set-Cookie header for color
-                    String response = "HTTP/1.1 200 OK\r\n" +
-                                      "Content-Type: text/html; charset=UTF-8\r\n" +
-                                      "Set-Cookie: color=" + color + "\r\n" +
-                                      "\r\n" +
-                                      modifiedContent + "\r\n";
+                    String response = "HTTP/1.1 200 OK\r\n"
+                            + "Content-Type: text/html; charset=UTF-8\r\n"
+                            + "Set-Cookie: color=" + color + "\r\n"
+                            + "\r\n"
+                            + modifiedContent + "\r\n";
                     outputStream.write(response.getBytes());
                     outputStream.flush();
                 } else {
                     // Send response without setting a cookie for other pages
-                    String response = "HTTP/1.1 200 OK\r\n" +
-                                      "Content-Type: text/html; charset=UTF-8\r\n" +
-                                      "\r\n" +
-                                      content + "\r\n";
+                    String response = "HTTP/1.1 200 OK\r\n"
+                            + "Content-Type: text/html; charset=UTF-8\r\n"
+                            + "\r\n"
+                            + content + "\r\n";
                     outputStream.write(response.getBytes());
                     outputStream.flush();
                 }
@@ -164,10 +165,10 @@ public class CookieSetHttpColorChange {
 
         private void serve404() {
             try {
-                String response = "HTTP/1.1 404 Not Found\r\n" +
-                                  "Content-Type: text/html; charset=UTF-8\r\n" +
-                                  "\r\n" +
-                                  "<html><body><h1>404 Not Found</h1></body></html>";
+                String response = "HTTP/1.1 404 Not Found\r\n"
+                        + "Content-Type: text/html; charset=UTF-8\r\n"
+                        + "\r\n"
+                        + "<html><body><h1>404 Not Found</h1></body></html>";
                 outputStream.write(response.getBytes());
                 outputStream.flush();
             } catch (IOException e) {
