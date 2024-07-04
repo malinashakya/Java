@@ -9,7 +9,8 @@ import java.util.Map;
 public class CookieSetHttpColorChange {
 
     private static final int PORT = 5976;
-    private static final String FOLDER_PATH = "LoginColor"; // Folder containing the HTML files
+    private static final String FOLDER_PATH = "LoginColor";
+    private static final String COOKIE_FILE = "color_cookie.txt";
 
     public static void main(String[] args) throws IOException {
         ServerSocket serverSocket = null;
@@ -57,7 +58,6 @@ public class CookieSetHttpColorChange {
                 String host = null;
                 String requestedFile = "index.html";
 
-                // Read HTTP request headers
                 while ((line = bufferedReader.readLine()) != null) {
                     System.out.println(line);
                     if (line.startsWith("Host:")) {
@@ -75,7 +75,10 @@ public class CookieSetHttpColorChange {
                                     if (param.startsWith("color=")) {
                                         String[] keyValue = param.split("=");
                                         if (keyValue.length == 2) {
-                                            cookies.put(keyValue[0], keyValue[1]);
+                                            // Store color in cookies
+                                            cookies.put("color", keyValue[1]);
+                                            // Update color cookie file
+                                            updateColorCookie(keyValue[1]);
                                         }
                                     }
                                 }
@@ -130,28 +133,28 @@ public class CookieSetHttpColorChange {
                     return;
                 }
 
-                
                 String content = contentBuilder.toString();
 
                 if (fileName.equals("page1.html") || fileName.equals("page2.html")) {
-                
-                    String color = cookies.getOrDefault("color", "white");
+                    // Retrieve color from cookies or cookie file
+                    String color = getStoredColor();
                     String modifiedContent = content.replace("{{color}}", color);
 
-                    
-                    outputStream.write("HTTP/1.1 200 OK\r\n".getBytes());
-                    outputStream.write("Content-Type: text/html; charset=UTF-8\r\n".getBytes());
-                    outputStream.write("\r\n".getBytes());
-                    outputStream.write(modifiedContent.getBytes());
-                    outputStream.write("\r\n".getBytes());
+                    // Send response with Set-Cookie header for color
+                    String response = "HTTP/1.1 200 OK\r\n" +
+                                      "Content-Type: text/html; charset=UTF-8\r\n" +
+                                      "Set-Cookie: color=" + color + "\r\n" +
+                                      "\r\n" +
+                                      modifiedContent + "\r\n";
+                    outputStream.write(response.getBytes());
                     outputStream.flush();
                 } else {
-                   
-                    outputStream.write("HTTP/1.1 200 OK\r\n".getBytes());
-                    outputStream.write("Content-Type: text/html; charset=UTF-8\r\n".getBytes());
-                    outputStream.write("\r\n".getBytes());
-                    outputStream.write(content.getBytes());
-                    outputStream.write("\r\n".getBytes());
+                    // Send response without setting a cookie for other pages
+                    String response = "HTTP/1.1 200 OK\r\n" +
+                                      "Content-Type: text/html; charset=UTF-8\r\n" +
+                                      "\r\n" +
+                                      content + "\r\n";
+                    outputStream.write(response.getBytes());
                     outputStream.flush();
                 }
             } catch (IOException e) {
@@ -162,13 +165,29 @@ public class CookieSetHttpColorChange {
         private void serve404() {
             try {
                 String response = "HTTP/1.1 404 Not Found\r\n" +
-                        "Content-Type: text/html; charset=UTF-8\r\n" +
-                        "\r\n" +
-                        "<html><body><h1>404 Not Found</h1></body></html>";
+                                  "Content-Type: text/html; charset=UTF-8\r\n" +
+                                  "\r\n" +
+                                  "<html><body><h1>404 Not Found</h1></body></html>";
                 outputStream.write(response.getBytes());
                 outputStream.flush();
             } catch (IOException e) {
                 e.printStackTrace();
+            }
+        }
+
+        private void updateColorCookie(String color) {
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(COOKIE_FILE))) {
+                writer.write(color);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        private String getStoredColor() {
+            try (BufferedReader reader = new BufferedReader(new FileReader(COOKIE_FILE))) {
+                return reader.readLine();
+            } catch (IOException e) {
+                return "white";
             }
         }
     }
