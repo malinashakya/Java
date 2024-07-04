@@ -55,75 +55,75 @@ class HttpClientHandler implements Runnable {
         }
     }
 
-    @Override
-    public void run() {
-        try {
-            String line;
-            String host = null;
-            String requestedFile = "index.html";
-            boolean authenticated = false;
+        @Override
+        public void run() {
+            try {
+                String line;
+                String host = null;
+                String requestedFile = "index.html";
+                boolean authenticated = false;
 
-            while ((line = bufferedReader.readLine()) != null) {
-                System.out.println(line);
-                if (line.startsWith("Host:")) {
-                    host = line.split(" ")[1];
-                }
-                if (line.startsWith("GET")) {
-                    String[] parts = line.split(" ");
-                    if (parts.length > 1) {
-                        requestedFile = parts[1].substring(1);
-                        if (requestedFile.isEmpty()) {
-                            requestedFile = "index.html";
+                while ((line = bufferedReader.readLine()) != null) {
+                    System.out.println(line);
+                    if (line.startsWith("Host:")) {
+                        host = line.split(" ")[1];
+                    }
+                    if (line.startsWith("GET")) {
+                        String[] parts = line.split(" ");
+                        if (parts.length > 1) {
+                            requestedFile = parts[1].substring(1);
+                            if (requestedFile.isEmpty()) {
+                                requestedFile = "index.html";
+                            }
                         }
                     }
-                }
-                if (line.startsWith("Authorization: Basic ")) {
-                    String base64Credentials = line.substring("Authorization: Basic ".length()).trim();
-                    String credentials = new String(Base64.getDecoder().decode(base64Credentials));
-                    String[] values = credentials.split(":", 2);
-                    String username = values[0];
-                    String password = values[1];
-                    if (HttpBasicAuthServer.USERNAME.equals(username) && HttpBasicAuthServer.PASSWORD.equals(password)) {
-                        authenticated = true;
+                    if (line.startsWith("Authorization: Basic ")) {
+                        String base64Credentials = line.substring("Authorization: Basic ".length()).trim();
+                        String credentials = new String(Base64.getDecoder().decode(base64Credentials));
+                        String[] values = credentials.split(":", 2);
+                        String username = values[0];
+                        String password = values[1];
+                        if (HttpBasicAuthServer.USERNAME.equals(username) && HttpBasicAuthServer.PASSWORD.equals(password)) {
+                            authenticated = true;
+                        }
+                    }
+                    if (line.isEmpty()) {
+                        break;
                     }
                 }
-                if (line.isEmpty()) {
-                    break;
-                }
-            }
 
-            if (!authenticated) {
-                sendUnauthorized();
-            } else if (host != null) {
-                String folder = "";
-                // IP address, may get changed as per the change in the Ip address of laptop
-                if (host.startsWith("172.19.16.1")) {
-                    folder = "172.19.16.1";
-                } else if (host.startsWith("127.0.0.1")) {
-                    folder = "127.0.0.1";
+                if (!authenticated) {
+                    sendUnauthorized();
+                } else if (host != null) {
+                    String folder = "";
+                    // IP address, may get changed as per the change in the Ip address of laptop
+                    if (host.startsWith("172.19.16.1")) {
+                        folder = "172.19.16.1";
+                    } else if (host.startsWith("127.0.0.1")) {
+                        folder = "127.0.0.1";
+                    }
+                    serveFile(folder, requestedFile);
+                } else {
+                    serve404();
                 }
-                serveFile(folder, requestedFile);
-            } else {
-                serve404();
-            }
 
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                if (bufferedReader != null) {
-                    bufferedReader.close();
-                }
-                if (outputStream != null) {
-                    outputStream.close();
-                }
-                clientSocket.close();
-                System.err.println("Client connection closed!");
             } catch (Exception e) {
                 e.printStackTrace();
+            } finally {
+                try {
+                    if (bufferedReader != null) {
+                        bufferedReader.close();
+                    }
+                    if (outputStream != null) {
+                        outputStream.close();
+                    }
+                    clientSocket.close();
+                    System.err.println("Client connection closed!");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         }
-    }
 
     private void serveFile(String folder, String fileName) {
         try (FileReader fileReader = new FileReader(folder + "/" + fileName)) {
