@@ -1,13 +1,4 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package DomainNumber;
-
-/**
- *
- * @author malin
- */
 
 import java.io.*;
 import java.net.InetAddress;
@@ -19,7 +10,7 @@ import java.util.Map;
 public class CookieSetHttpColorChange {
 
     private static final int PORT = 5976;
-    private static final String FOLDER_PATH = "LoginColor"; 
+    private static final String FOLDER_PATH = "LoginColor";
 
     public static void main(String[] args) throws IOException {
         ServerSocket serverSocket = null;
@@ -65,8 +56,9 @@ public class CookieSetHttpColorChange {
             try {
                 String line;
                 String host = null;
-                String requestedFile = "colorselectionpage.html";
+                String requestedFile = "colorchoose.html";
                 boolean setColorCookie = false;
+                String newColor = null;
 
                 while ((line = bufferedReader.readLine()) != null) {
                     System.out.println(line);
@@ -85,8 +77,7 @@ public class CookieSetHttpColorChange {
                                     if (param.startsWith("color=")) {
                                         String[] keyValue = param.split("=");
                                         if (keyValue.length == 2) {
-                                            // Store color in cookies
-                                            cookies.put("color", keyValue[1]);
+                                            newColor = keyValue[1];
                                             setColorCookie = true;
                                         }
                                     }
@@ -111,7 +102,7 @@ public class CookieSetHttpColorChange {
                     }
                 }
 
-                serveFile(FOLDER_PATH, requestedFile, setColorCookie);
+                serveFile(FOLDER_PATH, requestedFile, newColor, setColorCookie);
 
             } catch (IOException e) {
                 e.printStackTrace();
@@ -131,7 +122,7 @@ public class CookieSetHttpColorChange {
             }
         }
 
-        private void serveFile(String folder, String fileName, boolean setColorCookie) {
+        private void serveFile(String folder, String fileName, String newColor, boolean setColorCookie) {
             try {
                 File file = new File(folder + "/" + fileName);
                 if (!file.exists()) {
@@ -153,31 +144,21 @@ public class CookieSetHttpColorChange {
 
                 String content = contentBuilder.toString();
 
-                if (fileName.equals("page1.html") || fileName.equals("page2.html")) {
-                    // Retrieve color from cookies or default to white
-                    String color = cookies.getOrDefault("color", "white");
-                    String modifiedContent = content.replace("{{color}}", color);
+                // Retrieve the latest color value (newColor takes precedence over cookie)
+                String color = (newColor != null) ? newColor : cookies.getOrDefault("color", "white");
 
-                    // Send response with Set-Cookie header for color if needed
-                    String response = "HTTP/1.1 200 OK\r\n"
-                            + "Content-Type: text/html; charset=UTF-8\r\n";
-                    if (setColorCookie) {
-                        response += "Set-Cookie: color=" + cookies.get("color") + "\r\n";
-                    }
-                    response += "\r\n" + modifiedContent + "\r\n";
-                    outputStream.write(response.getBytes());
-                    outputStream.flush();
-                } else {
-                    // Send response without setting a cookie for other pages
-                    String response = "HTTP/1.1 200 OK\r\n"
-                            + "Content-Type: text/html; charset=UTF-8\r\n";
-                    if (setColorCookie) {
-                        response += "Set-Cookie: color=" + cookies.get("color") + "\r\n";
-                    }
-                    response += "\r\n" + content + "\r\n";
-                    outputStream.write(response.getBytes());
-                    outputStream.flush();
+                // Update the placeholder with the actual color
+                String modifiedContent = content.replace("{{color}}", color);
+
+                // Send response with Set-Cookie header for color if needed
+                String response = "HTTP/1.1 200 OK\r\n"
+                        + "Content-Type: text/html; charset=UTF-8\r\n";
+                if (setColorCookie) {
+                    response += "Set-Cookie: color=" + color + "; Path=/\r\n";
                 }
+                response += "\r\n" + modifiedContent + "\r\n";
+                outputStream.write(response.getBytes());
+                outputStream.flush();
             } catch (IOException e) {
                 e.printStackTrace();
             }
