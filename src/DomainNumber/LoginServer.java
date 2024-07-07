@@ -13,13 +13,19 @@ import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.text.SimpleDateFormat;
+import java.util.Base64;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
-public class CookieSetHttpColorChange {
+public class LoginServer {
 
     private static final int PORT = 5976;
-    private static final String FOLDER_PATH = "LoginColor"; 
+    private static final String FOLDER_PATH = "LoginColor";
+    private static final String USERNAME = "admin";
+    private static final String PASSWORD = "password";
 
     public static void main(String[] args) throws IOException {
         ServerSocket serverSocket = null;
@@ -65,8 +71,9 @@ public class CookieSetHttpColorChange {
             try {
                 String line;
                 String host = null;
-                String requestedFile = "colorselectionpage.html";
-                boolean setColorCookie = false;
+                String requestedFile = "loginpage.html";
+                boolean isPost = false;
+                StringBuilder postData = new StringBuilder();
 
                 while ((line = bufferedReader.readLine()) != null) {
                     System.out.println(line);
@@ -77,25 +84,13 @@ public class CookieSetHttpColorChange {
                         String[] parts = line.split(" ");
                         if (parts.length > 1) {
                             requestedFile = parts[1].substring(1);
-                            if (requestedFile.contains("?")) {
-                                String[] fileAndParams = requestedFile.split("\\?");
-                                requestedFile = fileAndParams[0];
-                                String[] params = fileAndParams[1].split("&");
-                                for (String param : params) {
-                                    if (param.startsWith("color=")) {
-                                        String[] keyValue = param.split("=");
-                                        if (keyValue.length == 2) {
-                                            // Store color in cookies
-                                            cookies.put("color", keyValue[1]);
-                                            setColorCookie = true;
-                                        }
-                                    }
-                                }
-                            }
                             if (requestedFile.isEmpty()) {
-                                requestedFile = "colorselectionpage.html";
+                                requestedFile = "loginpage.html";
                             }
                         }
+                    }
+                    if (line.startsWith("POST")) {
+                        isPost = true;
                     }
                     if (line.startsWith("Cookie:")) {
                         String[] cookiePairs = line.substring(8).split("; ");
@@ -106,12 +101,25 @@ public class CookieSetHttpColorChange {
                             }
                         }
                     }
+                    if (isPost && line.isEmpty()) {
+                        char[] postDataChars = new char[1024];
+                        int len = bufferedReader.read(postDataChars);
+                        postData.append(new String(postDataChars, 0, len));
+                        break;
+                    }
                     if (line.isEmpty()) {
                         break;
                     }
                 }
 
-                serveFile(FOLDER_PATH, requestedFile, setColorCookie);
+                if (isPost) {
+                    handlePostRequest(postData.toString());
+                } else {
+                    if (!cookies.containsKey("login")) {
+                        setLoginCookieFalse();
+                    }
+                    serveFile(FOLDER_PATH, requestedFile);
+                }
 
             } catch (IOException e) {
                 e.printStackTrace();
@@ -131,7 +139,80 @@ public class CookieSetHttpColorChange {
             }
         }
 
-        private void serveFile(String folder, String fileName, boolean setColorCookie) {
+        private void handlePostRequest(String postData) throws IOException {
+            Map<String, String> params = parsePostData(postData);
+            String username = params.get("username");
+            String password = params.get("password");
+
+            if (USERNAME.equals(username) && PASSWORD.equals(password)) {
+                String sessionId = generateRandomString();
+                String loginDateTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
+                String encodedUsername = encodeBase64(USERNAME);
+                String encodedLoginDateTime = encodeBase64(loginDateTime);
+
+                cookies.put("sessionId", sessionId);
+                cookies.put("username", encodedUsername);
+                cookies.put("loginDateTime", encodedLoginDateTime);
+                cookies.put("login", "true");
+
+                String response = "HTTP/1.1 302 Found\r\n"
+                        + "Location: /page3.html\r\n"
+                        + "Set-Cookie: sessionId=" + sessionId + "\r\n"
+                        + "Set-Cookie: username=" + encodedUsername + "\r\n"
+                        + "Set-Cookie: loginDateTime=" + encodedLoginDateTime + "\r\n"
+                        + "Set-Cookie: login=true\r\n"
+                        + "\r\n";
+                outputStream.write(response.getBytes());
+                outputStream.flush();
+            } else {
+                cookies.put("login", "false");
+                String response = "HTTP/1.1 302 Found\r\n"
+                        + "Location: /loginpage.html\r\n"
+                        + "Set-Cookie: login=false\r\n"
+                        + "\r\n";
+                outputStream.write(response.getBytes());
+                outputStream.flush();
+            }
+        }
+
+        private Map<String, String> parsePostData(String postData) {
+            Map<String, String> params = new HashMap<>();
+            String[] pairs = postData.split("&");
+            for (String pair : pairs) {
+                String[] keyValue = pair.split("=");
+                if (keyValue.length == 2) {
+                    params.put(keyValue[0], keyValue[1]);
+                }
+            }
+            return params;
+        }
+
+        private String generateRandomString() {
+            int length = 16;
+            String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+            Random random = new Random();
+            StringBuilder sb = new StringBuilder(length);
+            for (int i = 0; i < length; i++) {
+                sb.append(characters.charAt(random.nextInt(characters.length())));
+            }
+            return sb.toString();
+        }
+
+        private String encodeBase64(String input) {
+            return Base64.getEncoder().encodeToString(input.getBytes());
+        }
+
+        private void setLoginCookieFalse() throws IOException {
+            cookies.put("login", "false");
+            String response = "HTTP/1.1 200 OK\r\n"
+                    + "Set-Cookie: login=false\r\n"
+                    + "Content-Type: text/html; charset=UTF-8\r\n"
+                    + "\r\n";
+            outputStream.write(response.getBytes());
+            outputStream.flush();
+        }
+
+        private void serveFile(String folder, String fileName) {
             try {
                 File file = new File(folder + "/" + fileName);
                 if (!file.exists()) {
@@ -139,11 +220,12 @@ public class CookieSetHttpColorChange {
                     return;
                 }
 
+               
                 StringBuilder contentBuilder = new StringBuilder();
                 try (BufferedReader br = new BufferedReader(new FileReader(file))) {
                     String line;
                     while ((line = br.readLine()) != null) {
-                        contentBuilder.append(line);
+                        contentBuilder.append(line).append("\n");
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -151,33 +233,16 @@ public class CookieSetHttpColorChange {
                     return;
                 }
 
+          
                 String content = contentBuilder.toString();
+                String response = "HTTP/1.1 200 OK\r\n"
+                        + "Content-Type: text/html; charset=UTF-8\r\n"
+                        + "\r\n" 
+                        + content;  
 
-                if (fileName.equals("page1.html") || fileName.equals("page2.html")) {
-                    // Retrieve color from cookies or default to white
-                    String color = cookies.getOrDefault("color", "white");
-                    String modifiedContent = content.replace("{{color}}", color);
-
-                    // Send response with Set-Cookie header for color if needed
-                    String response = "HTTP/1.1 200 OK\r\n"
-                            + "Content-Type: text/html; charset=UTF-8\r\n";
-                    if (setColorCookie) {
-                        response += "Set-Cookie: color=" + cookies.get("color") + "\r\n";
-                    }
-                    response += "\r\n" + modifiedContent + "\r\n";
-                    outputStream.write(response.getBytes());
-                    outputStream.flush();
-                } else {
-                    // Send response without setting a cookie for other pages
-                    String response = "HTTP/1.1 200 OK\r\n"
-                            + "Content-Type: text/html; charset=UTF-8\r\n";
-                    if (setColorCookie) {
-                        response += "Set-Cookie: color=" + cookies.get("color") + "\r\n";
-                    }
-                    response += "\r\n" + content + "\r\n";
-                    outputStream.write(response.getBytes());
-                    outputStream.flush();
-                }
+                // Send the response
+                outputStream.write(response.getBytes());
+                outputStream.flush();
             } catch (IOException e) {
                 e.printStackTrace();
             }
