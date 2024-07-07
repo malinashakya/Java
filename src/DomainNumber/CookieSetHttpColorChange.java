@@ -56,7 +56,7 @@ public class CookieSetHttpColorChange {
             try {
                 String line;
                 String host = null;
-                String requestedFile = "colorchoose.html";
+                String requestedFile = "colorselectionpage.html";
                 boolean setColorCookie = false;
                 String newColor = null;
 
