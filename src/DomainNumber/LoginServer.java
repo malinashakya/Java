@@ -1,20 +1,10 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package DomainNumber;
-
-/**
- *
- * @author malin
- */
 
 import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.text.SimpleDateFormat;
-import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -26,6 +16,8 @@ public class LoginServer {
     private static final String FOLDER_PATH = "LoginColor";
     private static final String USERNAME = "admin";
     private static final String PASSWORD = "password";
+
+    private static final Map<String, String> sessions = new HashMap<>();
 
     public static void main(String[] args) throws IOException {
         ServerSocket serverSocket = null;
@@ -52,7 +44,7 @@ public class LoginServer {
 
         private final Socket clientSocket;
         private BufferedReader bufferedReader;
-        private OutputStream outputStream;
+        private OutputStream os;
         private Map<String, String> cookies;
 
         public HttpClientHandler(Socket clientSocket) {
@@ -60,7 +52,7 @@ public class LoginServer {
             this.cookies = new HashMap<>();
             try {
                 bufferedReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-                outputStream = clientSocket.getOutputStream();
+                os = clientSocket.getOutputStream();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -70,16 +62,12 @@ public class LoginServer {
         public void run() {
             try {
                 String line;
-                String host = null;
                 String requestedFile = "loginpage.html";
                 boolean isPost = false;
                 StringBuilder postData = new StringBuilder();
 
                 while ((line = bufferedReader.readLine()) != null) {
                     System.out.println(line);
-                    if (line.startsWith("Host:")) {
-                        host = line.split(" ")[1];
-                    }
                     if (line.startsWith("GET")) {
                         String[] parts = line.split(" ");
                         if (parts.length > 1) {
@@ -112,15 +100,17 @@ public class LoginServer {
                     }
                 }
 
-                if (isPost) {
-                    handlePostRequest(postData.toString());
-                } else {
-                    if (!cookies.containsKey("login")) {
-                        setLoginCookieFalse();
+                synchronized (sessions) {
+                    if (isPost) {
+                        handlePostRequest(postData.toString());
+                    } else {
+                        if (!isLoggedIn()) {
+                            serveFile(FOLDER_PATH, "loginpage.html");
+                        } else {
+                            serveFile(FOLDER_PATH, requestedFile);
+                        }
                     }
-                    serveFile(FOLDER_PATH, requestedFile);
                 }
-
             } catch (IOException e) {
                 e.printStackTrace();
             } finally {
@@ -128,8 +118,8 @@ public class LoginServer {
                     if (bufferedReader != null) {
                         bufferedReader.close();
                     }
-                    if (outputStream != null) {
-                        outputStream.close();
+                    if (os != null) {
+                        os.close();
                     }
                     clientSocket.close();
                     System.out.println("Client connection closed");
@@ -139,41 +129,25 @@ public class LoginServer {
             }
         }
 
-        private void handlePostRequest(String postData) throws IOException {
-            Map<String, String> params = parsePostData(postData);
-            String username = params.get("username");
-            String password = params.get("password");
+       private void handlePostRequest(String postData) throws IOException {
+    Map<String, String> params = parsePostData(postData);
+    String username = params.get("username");
+    String password = params.get("password");
 
-            if (USERNAME.equals(username) && PASSWORD.equals(password)) {
-                String sessionId = generateRandomString();
-                String loginDateTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
-                String encodedUsername = encodeBase64(USERNAME);
-                String encodedLoginDateTime = encodeBase64(loginDateTime);
+    if (authenticate(username, password)) {
+        String sessionId = createSession(username, new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()));
+        String response = "HTTP/1.1 302 Found\r\n"
+                + "Location: /page3.html\r\n"
+                + "Set-Cookie: sessionId=" + sessionId + "; Path=/; HttpOnly; Secure\r\n"
+                + "\r\n";
+        os.write(response.getBytes());
+        os.flush();
+    } else {
+        cookies.put("login", "false");
+        serveFile(FOLDER_PATH, "loginpage.html");
+    }
+}
 
-                cookies.put("sessionId", sessionId);
-                cookies.put("username", encodedUsername);
-                cookies.put("loginDateTime", encodedLoginDateTime);
-                cookies.put("login", "true");
-
-                String response = "HTTP/1.1 302 Found\r\n"
-                        + "Location: /page3.html\r\n"
-                        + "Set-Cookie: sessionId=" + sessionId + "\r\n"
-                        + "Set-Cookie: username=" + encodedUsername + "\r\n"
-                        + "Set-Cookie: loginDateTime=" + encodedLoginDateTime + "\r\n"
-                        + "Set-Cookie: login=true\r\n"
-                        + "\r\n";
-                outputStream.write(response.getBytes());
-                outputStream.flush();
-            } else {
-                cookies.put("login", "false");
-                String response = "HTTP/1.1 302 Found\r\n"
-                        + "Location: /loginpage.html\r\n"
-                        + "Set-Cookie: login=false\r\n"
-                        + "\r\n";
-                outputStream.write(response.getBytes());
-                outputStream.flush();
-            }
-        }
 
         private Map<String, String> parsePostData(String postData) {
             Map<String, String> params = new HashMap<>();
@@ -187,75 +161,85 @@ public class LoginServer {
             return params;
         }
 
-        private String generateRandomString() {
-            int length = 16;
-            String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        private boolean authenticate(String username, String password) {
+            return USERNAME.equals(username) && PASSWORD.equals(password);
+        }
+
+        private String createSession(String username, String loginTime) {
+            String characters = "abcdefghijklmnopqrstuvwxyz0123456789";
+            StringBuilder sessionIdBuilder = new StringBuilder();
             Random random = new Random();
-            StringBuilder sb = new StringBuilder(length);
-            for (int i = 0; i < length; i++) {
-                sb.append(characters.charAt(random.nextInt(characters.length())));
+            for (int i = 0; i < 10; i++) {
+                sessionIdBuilder.append(characters.charAt(random.nextInt(characters.length())));
             }
-            return sb.toString();
+            String sessionId = sessionIdBuilder.toString();
+
+            String sessionData = username + ":" + loginTime;
+            sessions.put(sessionId, sessionData);
+
+            return sessionId;
         }
 
-        private String encodeBase64(String input) {
-            return Base64.getEncoder().encodeToString(input.getBytes());
+        private boolean validateSession(String sessionId) {
+            return sessions.containsKey(sessionId);
         }
 
-        private void setLoginCookieFalse() throws IOException {
-            cookies.put("login", "false");
-            String response = "HTTP/1.1 200 OK\r\n"
-                    + "Set-Cookie: login=false\r\n"
-                    + "Content-Type: text/html; charset=UTF-8\r\n"
-                    + "\r\n";
-            outputStream.write(response.getBytes());
-            outputStream.flush();
+        private boolean isLoggedIn() {
+            String sessionId = cookies.get("sessionId");
+            return sessionId != null && validateSession(sessionId);
+        }
+
+        private void sendAuthenticatedResponse(String sessionId, String loginTime) throws IOException {
+            os.write("HTTP/1.1 200 OK\r\n".getBytes());
+            os.write(("Set-Cookie: sessionId=" + sessionId + "; Path=/; HttpOnly; Secure\r\n").getBytes());
+            os.write(("Set-Cookie: loginTime=" + loginTime + "; Path=/; HttpOnly; Secure\r\n").getBytes());
+            os.write("Content-Type: text/html; charset=UTF-8\r\n".getBytes());
+            os.write("\r\n".getBytes());
+            serveFileContent("index.html");
+            os.flush();
         }
 
         private void serveFile(String folder, String fileName) {
-            try {
-                File file = new File(folder + "/" + fileName);
-                if (!file.exists()) {
-                    serve404();
-                    return;
+            try (FileReader fileReader = new FileReader(folder + "/" + fileName)) {
+                os.write("HTTP/1.1 200 OK\r\n".getBytes());
+                os.write("Content-Type: text/html; charset=UTF-8\r\n".getBytes());
+                os.write("\r\n".getBytes());
+
+                int character;
+                while ((character = fileReader.read()) != -1) {
+                    os.write(character);
                 }
-
-               
-                StringBuilder contentBuilder = new StringBuilder();
-                try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-                    String line;
-                    while ((line = br.readLine()) != null) {
-                        contentBuilder.append(line).append("\n");
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    serve404();
-                    return;
-                }
-
-          
-                String content = contentBuilder.toString();
-                String response = "HTTP/1.1 200 OK\r\n"
-                        + "Content-Type: text/html; charset=UTF-8\r\n"
-                        + "\r\n" 
-                        + content;  
-
-                // Send the response
-                outputStream.write(response.getBytes());
-                outputStream.flush();
+                os.write("\r\n".getBytes());
+                os.flush();
+            } catch (FileNotFoundException e) {
+                error();
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
 
-        private void serve404() {
+        private void serveFileContent(String fileName) {
+            try (BufferedReader fileReader = new BufferedReader(new FileReader(fileName))) {
+                String line;
+                while ((line = fileReader.readLine()) != null) {
+                    os.write(line.getBytes());
+                    os.write("\r\n".getBytes());
+                }
+                os.flush();
+            } catch (FileNotFoundException e) {
+                error();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        private void error() {
             try {
-                String response = "HTTP/1.1 404 Not Found\r\n"
-                        + "Content-Type: text/html; charset=UTF-8\r\n"
-                        + "\r\n"
-                        + "<html><body><h1>404 Not Found</h1></body></html>";
-                outputStream.write(response.getBytes());
-                outputStream.flush();
+                os.write("HTTP/1.1 404 Not Found\r\n".getBytes());
+                os.write("Content-Type: text/html; charset=UTF-8\r\n".getBytes());
+                os.write("\r\n".getBytes());
+                os.write("<html><body><h1>404 Not Found</h1></body></html>".getBytes());
+                os.flush();
             } catch (IOException e) {
                 e.printStackTrace();
             }
